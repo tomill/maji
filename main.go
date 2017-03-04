@@ -41,6 +41,9 @@ func run(opt Options) (err error) {
 	}
 	logInfo("Started: %s", p)
 
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
 	go func() {
 		for {
 			select {
@@ -57,19 +60,13 @@ func run(opt Options) (err error) {
 				return
 			case <-w.Closed:
 				return
+			case <-quit:
+				logInfo("Quitting: %s", p)
+				p.Stop()
+				w.Close()
+				return
 			}
 		}
-	}()
-
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sig
-		logInfo("Quitting: %s", p)
-		p.Stop()
-		w.Close()
-		os.Exit(0)
 	}()
 
 	err = w.Start(time.Millisecond * 100)
