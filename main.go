@@ -31,17 +31,15 @@ func run(opt Options) (err error) {
 	w, err := NewWatcher(opt.Dirs, opt.Exclude)
 	if err != nil {
 		return
-	} else {
-		logInfo("Watching: %s", opt.Dirs)
 	}
+	logInfo("Watching: %s", opt.Dirs)
 
 	p := NewProcess(opt.Command)
 	err = p.Start()
 	if err != nil {
 		logWarn("%s", err)
-	} else {
-		logInfo("Started: %s", p)
 	}
+	logInfo("Started: %s", p)
 
 	go func() {
 		for {
