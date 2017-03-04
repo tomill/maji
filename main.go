@@ -17,12 +17,12 @@ var logWarn = color.Red
 func main() {
 	opt, err := GetOptions(os.Args)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	if err := run(opt); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
