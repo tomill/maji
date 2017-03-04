@@ -7,19 +7,19 @@ import (
 )
 
 type Options struct {
-	Dirs    []string `long:"dir" description:"Diretories to watch. (default: .)"`
-	Exclude []string `long:"exclude" short:"x" description:"Diretories to ignore."`
+	Dirs    []string `long:"dir" description:"Directories to watch. (default: .)"`
+	Exclude []string `long:"exclude" short:"x" description:"Directory/File to ignore."`
 	Command []string
 }
 
 func GetOptions(osArgs []string) (opt Options, err error) {
 	args, command := separate(osArgs)
 
-	parser := flags.NewParser(&opt, flags.HelpFlag)
-	parser.Name = "maji"
-	parser.Usage = `[OPTIONS] [<dir>...] -- <command>`
+	app := flags.NewParser(&opt, flags.HelpFlag)
+	app.Name = "maji"
+	app.Usage = `[OPTIONS] [<dir>...] -- <command>`
 
-	dirs, err := parser.ParseArgs(args)
+	dirs, err := app.ParseArgs(args)
 	if err != nil {
 		return
 	}
