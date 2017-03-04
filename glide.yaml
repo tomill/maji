@@ -1,0 +1,5 @@
+package: github.com/tomill/maji
+import:
+- package: github.com/fatih/color
+- package: github.com/jessevdk/go-flags
+- package: github.com/radovskyb/watcher

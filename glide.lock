@@ -1,0 +1,21 @@
+hash: 7714f0d7f9ad5a5ee642388c82c8680a23c7b4223801101408ad8810148eddcd
+updated: 2017-03-04T16:04:45.095734624+09:00
+imports:
+- name: github.com/fatih/color
+  version: 7824417a424b65227be8ac9b14d545a7f3e6c3f0
+- name: github.com/jessevdk/go-flags
+  version: 460c7bb0abd6e927f2767cadc91aa6ef776a98b4
+- name: github.com/mattn/go-colorable
+  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  repo: https://github.com/mattn/go-colorable
+- name: github.com/mattn/go-isatty
+  version: dda3de49cbfcec471bd7a70e6cc01fcc3ff90109
+  repo: https://github.com/mattn/go-isatty
+- name: github.com/radovskyb/watcher
+  version: a51dfda4de7db2413f285941acf51965b724b9b4
+- name: golang.org/x/sys
+  version: e24f485414aeafb646f6fca458b0bf869c0880a1
+  repo: https://go.googlesource.com/sys
+  subpackages:
+  - unix
+devImports: []
