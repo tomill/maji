@@ -12,7 +12,7 @@ type options struct {
 	Command []string
 }
 
-func getOptions(osArgs []string) (*options, error) {
+func GetOptions(osArgs []string) (*options, error) {
 	args, command := separate(osArgs)
 
 	opt := &options{}

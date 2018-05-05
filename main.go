@@ -22,7 +22,7 @@ func logFatal(err error) {
 }
 
 func main() {
-	opt, err := getOptions(os.Args)
+	opt, err := GetOptions(os.Args)
 	if err, ok := err.(*flags.Error); ok && err.Type == flags.ErrHelp {
 		logInfo("%s", err)
 		os.Exit(0)
