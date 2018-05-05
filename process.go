@@ -27,8 +27,8 @@ func (p *Process) Start() (err error) {
 	return
 }
 
-func (p *Process) Stop() {
-	if p.Process != nil {
+func (p *process) Stop() {
+	if p.Cmd != nil && p.Cmd.Process != nil {
 		// TODO: this works only in *nix world
 		syscall.Kill(-p.Process.Pid, syscall.SIGKILL)
 	}
@@ -36,7 +36,7 @@ func (p *Process) Stop() {
 
 func (p *Process) String() string {
 	s := fmt.Sprintf("`%s`", strings.Join(p.command, " "))
-	if p.Process != nil {
+	if p.Cmd != nil && p.Cmd.Process != nil {
 		s += fmt.Sprintf(" (pid: %d)", p.Process.Pid)
 	}
 
