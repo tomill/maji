@@ -39,19 +39,19 @@ func run(opt *options) error {
 
 	logInfo("watching %s", opt.Dirs)
 
-	p := NewProcess(opt.Command)
-	err = p.Start()
-	if err != nil {
-		logWarn("%s", err)
-	}
-	logInfo("Started: %s", p)
+	trap := make(chan os.Signal, 1)
+	signal.Notify(trap, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	p := NewProcess(opt.Command)
 
 	go func() {
+		defer w.Close()
+		defer p.Stop()
 		for {
 			select {
+			case sig := <-trap:
+				logInfo("%s. quit: %s", sig, p)
+				return
 			case event := <-w.Event:
 				logInfo("%s", event)
 				logInfo("restart %s", p)
@@ -66,11 +66,6 @@ func run(opt *options) error {
 				}
 				return
 			case <-w.Closed:
-				return
-			case <-quit:
-				logInfo("Quitting: %s", p)
-				p.Stop()
-				w.Close()
 				return
 			}
 		}
