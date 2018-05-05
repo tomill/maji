@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/jessevdk/go-flags"
 	"github.com/radovskyb/watcher"
 )
 
@@ -22,6 +23,10 @@ func logFatal(err error) {
 
 func main() {
 	opt, err := getOptions(os.Args)
+	if err, ok := err.(*flags.Error); ok && err.Type == flags.ErrHelp {
+		logInfo("%s", err)
+		os.Exit(0)
+	}
 	if err != nil {
 		logFatal(err)
 	}
