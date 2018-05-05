@@ -8,67 +8,78 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/jessevdk/go-flags"
 	"github.com/radovskyb/watcher"
 )
 
-var logInfo = color.Cyan
-var logWarn = color.Red
+func logInfo(s string, v ...interface{}) {
+	color.New(color.FgBlue).Println("[maji] " + fmt.Sprintf(s, v...))
+}
+
+func logFatal(err error) {
+	color.New(color.FgRed).Fprintln(os.Stderr, "[maji] error: "+err.Error())
+	os.Exit(1)
+}
 
 func main() {
 	opt, err := GetOptions(os.Args)
+	if err, ok := err.(*flags.Error); ok && err.Type == flags.ErrHelp {
+		logInfo("%s", err)
+		os.Exit(0)
+	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		logFatal(err)
 	}
 
 	if err := run(opt); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		logFatal(err)
 	}
 }
 
-func run(opt Options) (err error) {
+func run(opt *options) error {
 	w, err := NewWatcher(opt.Dirs, opt.Exclude)
 	if err != nil {
-		return
+		return err
 	}
-	logInfo("Watching: %s", opt.Dirs)
+
+	logInfo("watching %s", opt.Dirs)
+
+	trap := make(chan os.Signal, 1)
+	signal.Notify(trap, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
 
 	p := NewProcess(opt.Command)
-	err = p.Start()
-	if err != nil {
-		logWarn("%s", err)
-	}
-	logInfo("Started: %s", p)
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
+		defer w.Close()
+		defer p.Stop()
 		for {
 			select {
+			case sig := <-trap:
+				logInfo("%s. quit: %s", sig, p)
+				return
 			case event := <-w.Event:
-				logInfo("Event: %s", event)
-				logInfo("Restarting: %s", p)
+				logInfo("%s", event)
+				logInfo("restart %s", p)
 				p.Stop()
-				p.Start()
+				if err := p.Start(); err != nil {
+					logInfo("%s", err)
+				}
 			case err := <-w.Error:
 				if err == watcher.ErrWatchedFileDeleted {
-					logWarn("%s", err)
+					logInfo("%s", err)
 					continue
 				}
 				return
 			case <-w.Closed:
 				return
-			case <-quit:
-				logInfo("Quitting: %s", p)
-				p.Stop()
-				w.Close()
-				return
 			}
 		}
 	}()
 
-	err = w.Start(time.Millisecond * 100)
-	return
+	logInfo("start %s", p)
+	if err = p.Start(); err != nil {
+		logInfo("%s", err)
+	}
+
+	return w.Start(time.Millisecond * 100)
 }

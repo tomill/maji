@@ -6,22 +6,23 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-type Options struct {
+type options struct {
 	Dirs    []string `long:"dir" description:"Directories to watch. (default: .)"`
 	Exclude []string `long:"exclude" short:"x" description:"Directory/File to ignore."`
 	Command []string
 }
 
-func GetOptions(osArgs []string) (opt Options, err error) {
+func GetOptions(osArgs []string) (*options, error) {
 	args, command := separate(osArgs)
 
-	app := flags.NewParser(&opt, flags.HelpFlag)
+	opt := &options{}
+	app := flags.NewParser(opt, flags.HelpFlag)
 	app.Name = "maji"
 	app.Usage = `[OPTIONS] [<dir>...] -- <command>`
 
 	dirs, err := app.ParseArgs(args)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	opt.Dirs = append(opt.Dirs, dirs...)
@@ -32,10 +33,10 @@ func GetOptions(osArgs []string) (opt Options, err error) {
 	opt.Command = command
 	if len(opt.Command) == 0 {
 		err = errors.New("the required argument <command> was not specified")
-		return
+		return nil, err
 	}
 
-	return
+	return opt, nil
 }
 
 func separate(osArgs []string) (args []string, command []string) {

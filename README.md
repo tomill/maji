@@ -1,6 +1,6 @@
 # maji
 
-... is a simple command line tool to watch file changes using polling.
+maji is a simple command line tool to watch file changes using polling.
 
 ## Usage
 
@@ -19,6 +19,8 @@ Options:
 Examples:
 
 ```bash
+$ maji -- make test
+
 $ maji . -- go test
 
 $ maji src -x build -- make build
@@ -29,7 +31,7 @@ $ maji front -- webpack
 ## Install
 
 ```
-go get github.com/tomill/maji
+go get -u github.com/tomill/maji
 ```
 
 ## Description
