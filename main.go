@@ -11,19 +11,23 @@ import (
 	"github.com/radovskyb/watcher"
 )
 
-var logInfo = color.Cyan
-var logWarn = color.Red
+func logInfo(s string, v ...interface{}) {
+	color.New(color.FgBlue).Println("[maji] " + fmt.Sprintf(s, v...))
+}
+
+func logFatal(err error) {
+	color.New(color.FgRed).Fprintln(os.Stderr, "[maji] error: "+err.Error())
+	os.Exit(1)
+}
 
 func main() {
 	opt, err := GetOptions(os.Args)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		logFatal(err)
 	}
 
 	if err := run(opt); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		logFatal(err)
 	}
 }
 
@@ -32,7 +36,8 @@ func run(opt Options) (err error) {
 	if err != nil {
 		return
 	}
-	logInfo("Watching: %s", opt.Dirs)
+
+	logInfo("watching %s", opt.Dirs)
 
 	p := NewProcess(opt.Command)
 	err = p.Start()
@@ -48,13 +53,15 @@ func run(opt Options) (err error) {
 		for {
 			select {
 			case event := <-w.Event:
-				logInfo("Event: %s", event)
-				logInfo("Restarting: %s", p)
+				logInfo("%s", event)
+				logInfo("restart %s", p)
 				p.Stop()
-				p.Start()
+				if err := p.Start(); err != nil {
+					logInfo("%s", err)
+				}
 			case err := <-w.Error:
 				if err == watcher.ErrWatchedFileDeleted {
-					logWarn("%s", err)
+					logInfo("%s", err)
 					continue
 				}
 				return
@@ -69,6 +76,10 @@ func run(opt Options) (err error) {
 		}
 	}()
 
-	err = w.Start(time.Millisecond * 100)
-	return
+	logInfo("start %s", p)
+	if err = p.Start(); err != nil {
+		logInfo("%s", err)
+	}
+
+	return w.Start(time.Millisecond * 100)
 }
