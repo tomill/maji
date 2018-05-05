@@ -21,7 +21,7 @@ func logFatal(err error) {
 }
 
 func main() {
-	opt, err := GetOptions(os.Args)
+	opt, err := getOptions(os.Args)
 	if err != nil {
 		logFatal(err)
 	}
@@ -31,10 +31,10 @@ func main() {
 	}
 }
 
-func run(opt Options) (err error) {
+func run(opt *options) error {
 	w, err := NewWatcher(opt.Dirs, opt.Exclude)
 	if err != nil {
-		return
+		return err
 	}
 
 	logInfo("watching %s", opt.Dirs)
