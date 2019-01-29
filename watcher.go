@@ -14,7 +14,7 @@ func NewWatcher(dirs []string, exclude []string) (*watcher.Watcher, error) {
 	}
 
 	for _, v := range exclude {
-		w.Ignore(v)
+		_ = w.Ignore(v)
 	}
 
 	return w, nil

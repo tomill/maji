@@ -12,42 +12,45 @@ import (
 	"github.com/radovskyb/watcher"
 )
 
-func logInfo(s string, v ...interface{}) {
-	color.New(color.FgBlue).Println("[maji] " + fmt.Sprintf(s, v...))
-}
-
-func logFatal(err error) {
-	color.New(color.FgRed).Fprintln(os.Stderr, "[maji] error: "+err.Error())
-	os.Exit(1)
-}
-
 func main() {
-	opt, err := GetOptions(os.Args)
-	if err, ok := err.(*flags.Error); ok && err.Type == flags.ErrHelp {
-		logInfo("%s", err)
-		os.Exit(0)
+	opt := struct {
+		Dirs    []string `long:"dir"               description:"Directory/File to watch. (default: .)"`
+		Exclude []string `long:"exclude" short:"x" description:"Directory/File to ignore."`
+	}{}
+
+	app := flags.NewParser(&opt, flags.HelpFlag)
+	app.Name = "maji"
+	app.Usage = `[OPTIONS] [<dir>...] -- <command>`
+
+	var command []string
+	args := os.Args[1:]
+	for i, v := range os.Args {
+		if v == "--" {
+			args = os.Args[1:i]
+			command = os.Args[i+1:]
+			break
+		}
 	}
+
+	bare, err := app.ParseArgs(args)
 	if err != nil {
 		logFatal(err)
 	}
 
-	if err := run(opt); err != nil {
-		logFatal(err)
+	opt.Dirs = append(opt.Dirs, bare...)
+	if len(opt.Dirs) == 0 {
+		opt.Dirs = []string{"."}
 	}
-}
 
-func run(opt *options) error {
 	w, err := NewWatcher(opt.Dirs, opt.Exclude)
 	if err != nil {
-		return err
+		logFatal(err)
 	}
 
-	logInfo("watching %s", opt.Dirs)
+	p := NewProcess(command)
 
 	trap := make(chan os.Signal, 1)
 	signal.Notify(trap, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
-
-	p := NewProcess(opt.Command)
 
 	go func() {
 		defer w.Close()
@@ -55,18 +58,18 @@ func run(opt *options) error {
 		for {
 			select {
 			case sig := <-trap:
-				logInfo("%s. quit: %s", sig, p)
+				logInfof("%s. quit: %s", sig, p)
 				return
 			case event := <-w.Event:
-				logInfo("%s", event)
-				logInfo("restart %s", p)
+				logInfof("%s", event)
+				logInfof("restart %s", p)
 				p.Stop()
 				if err := p.Start(); err != nil {
-					logInfo("%s", err)
+					logInfof("%s", err)
 				}
 			case err := <-w.Error:
 				if err == watcher.ErrWatchedFileDeleted {
-					logInfo("%s", err)
+					logInfof("%s", err)
 					continue
 				}
 				return
@@ -76,10 +79,21 @@ func run(opt *options) error {
 		}
 	}()
 
-	logInfo("start %s", p)
+	logInfof("start %s", p)
 	if err = p.Start(); err != nil {
-		logInfo("%s", err)
+		logInfof("%s", err)
 	}
 
-	return w.Start(time.Millisecond * 100)
+	if err := w.Start(time.Millisecond * 100); err != nil {
+		logFatal(err)
+	}
+}
+
+func logInfof(s string, v ...interface{}) {
+	_, _ = color.New(color.FgBlue).Println("[maji] " + fmt.Sprintf(s, v...))
+}
+
+func logFatal(err error) {
+	_, _ = color.New(color.FgRed).Fprintln(os.Stderr, "[maji] error: "+err.Error())
+	os.Exit(1)
 }
