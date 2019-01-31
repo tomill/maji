@@ -26,9 +26,9 @@ func (p *process) Start() error {
 	if len(p.command) > 1 {
 		p.Cmd = exec.Command(p.command[0], p.command[1:]...)
 	} else if runtime.GOOS == "windows" {
-		p.Cmd = exec.Command("C:\\Windows\\System32\\cmd.exe", "/c", strings.Join(p.command, " ")) // possibly works
+		p.Cmd = exec.Command("C:\\Windows\\System32\\cmd.exe", "/c", p.command[0]) // possibly works
 	} else {
-		p.Cmd = exec.Command("sh", "-c", strings.Join(p.command, " "))
+		p.Cmd = exec.Command("sh", "-c", p.command[0])
 	}
 
 	p.Cmd.Stdout = os.Stdout
@@ -39,8 +39,7 @@ func (p *process) Start() error {
 }
 
 func (p *process) Stop() {
-	if p.Cmd != nil && p.Cmd.Process != nil {
-		// TODO: this works only in *nix world
+	if p.Cmd != nil && p.Cmd.Process != nil && runtime.GOOS != "windows" {
 		_ = syscall.Kill(-p.Process.Pid, syscall.SIGKILL)
 	}
 }

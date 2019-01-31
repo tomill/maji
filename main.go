@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,29 +12,32 @@ import (
 	"github.com/radovskyb/watcher"
 )
 
-func main() {
-	opt := struct {
-		Dirs    []string `long:"dir"               description:"Directory/File to watch. (default: .)"`
-		Exclude []string `long:"exclude" short:"x" description:"Directory/File to ignore."`
-	}{}
+const Name = "maji"
 
-	app := flags.NewParser(&opt, flags.HelpFlag)
-	app.Name = "maji"
+type option struct {
+	Dirs    []string `long:"dir"               description:"Directory/File to watch. (default: .)"`
+	Exclude []string `long:"exclude" short:"x" description:"Directory/File to ignore."`
+	Command []string
+}
+
+func main() {
+	opt := &option{}
+	app := flags.NewParser(opt, flags.HelpFlag)
+	app.Name = Name
 	app.Usage = `[OPTIONS] [<dir>...] -- <command>`
 
-	var command []string
 	args := os.Args[1:]
 	for i, v := range os.Args {
 		if v == "--" {
 			args = os.Args[1:i]
-			command = os.Args[i+1:]
+			opt.Command = os.Args[i+1:]
 			break
 		}
 	}
 
 	bare, err := app.ParseArgs(args)
 	if err != nil {
-		logFatal(err)
+		log.Fatalln(err)
 	}
 
 	opt.Dirs = append(opt.Dirs, bare...)
@@ -42,12 +45,31 @@ func main() {
 		opt.Dirs = []string{"."}
 	}
 
-	w, err := NewWatcher(opt.Dirs, opt.Exclude)
-	if err != nil {
-		logFatal(err)
+	if err := run(opt); err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func run(opt *option) error {
+	w := watcher.New()
+	w.SetMaxEvents(1)
+	w.IgnoreHiddenFiles(true)
+
+	for _, v := range opt.Dirs {
+		if err := w.AddRecursive(v); err != nil {
+			infof("ignored %s", err)
+		}
+	}
+	if err := w.Ignore(opt.Exclude...); err != nil {
+		infof("ignored %s", err)
 	}
 
-	p := NewProcess(command)
+	p := NewProcess(opt.Command)
+
+	infof("start %s", p)
+	if err := p.Start(); err != nil {
+		infof("error %s", err)
+	}
 
 	trap := make(chan os.Signal, 1)
 	signal.Notify(trap, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
@@ -55,22 +77,25 @@ func main() {
 	go func() {
 		defer w.Close()
 		defer p.Stop()
+		defer infof("bye~~")
 		for {
 			select {
 			case sig := <-trap:
-				logInfof("%s. quit: %s", sig, p)
+				infof("%s. quit: %s", sig, p)
 				return
 			case event := <-w.Event:
-				logInfof("%s", event)
-				logInfof("restart %s", p)
+				infof("event %s", event)
+				infof("restart %s", p)
 				p.Stop()
 				if err := p.Start(); err != nil {
-					logInfof("%s", err)
+					infof("error %s", err)
 				}
 			case err := <-w.Error:
 				if err == watcher.ErrWatchedFileDeleted {
-					logInfof("%s", err)
-					continue
+					infof("event %s", err)
+					if len(w.WatchedFiles()) > 0 {
+						continue
+					}
 				}
 				return
 			case <-w.Closed:
@@ -79,21 +104,9 @@ func main() {
 		}
 	}()
 
-	logInfof("start %s", p)
-	if err = p.Start(); err != nil {
-		logInfof("%s", err)
-	}
-
-	if err := w.Start(time.Millisecond * 100); err != nil {
-		logFatal(err)
-	}
+	return w.Start(time.Millisecond * 100)
 }
 
-func logInfof(s string, v ...interface{}) {
-	_, _ = color.New(color.FgBlue).Println("[maji] " + fmt.Sprintf(s, v...))
-}
-
-func logFatal(err error) {
-	_, _ = color.New(color.FgRed).Fprintln(os.Stderr, "[maji] error: "+err.Error())
-	os.Exit(1)
+func infof(s string, v ...interface{}) {
+	_, _ = color.New(color.FgBlue).Printf("["+Name+"] "+s+"\n", v...)
 }

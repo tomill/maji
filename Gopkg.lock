@@ -2,44 +2,60 @@
 
 
 [[projects]]
+  digest = "1:4bb94bb2d837b5c7489d9e5e1fcffbc81fa1cb43024cbb4fe827787378f01e3b"
   name = "github.com/fatih/color"
   packages = ["."]
+  pruneopts = "UT"
   revision = "507f6050b8568533fb3f5504de8e5205fa62a114"
   version = "v1.6.0"
 
 [[projects]]
+  digest = "1:a2cff208d4759f6ba1b1cd228587b0a1869f95f22542ec9cd17fff64430113c7"
   name = "github.com/jessevdk/go-flags"
   packages = ["."]
+  pruneopts = "UT"
   revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
   version = "v1.4.0"
 
 [[projects]]
+  digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
+  pruneopts = "UT"
   revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
   version = "v0.0.9"
 
 [[projects]]
+  digest = "1:d4d17353dbd05cb52a2a52b7fe1771883b682806f68db442b436294926bbfafb"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
+  pruneopts = "UT"
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
   version = "v0.0.3"
 
 [[projects]]
+  digest = "1:0665976cc6d8c2e60dafca32820b6b7eca70f37ded0bcccc103388e1c0d05c53"
   name = "github.com/radovskyb/watcher"
   packages = ["."]
+  pruneopts = "UT"
   revision = "6145e1439b9de93806925353403f91d2abbad8a5"
   version = "v1.0.2"
 
 [[projects]]
   branch = "master"
+  digest = "1:59fdb8bf86a81a5bff0e1a6c39d06f09251c627aeab82d64d3431cf4014d10d7"
   name = "golang.org/x/sys"
   packages = ["unix"]
+  pruneopts = "UT"
   revision = "6f686a352de66814cdd080d970febae7767857a3"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "187e97c607b66540e12d1f199b55d05e0d8d80f16654f1da1a8da3ab44d4b912"
+  input-imports = [
+    "github.com/fatih/color",
+    "github.com/jessevdk/go-flags",
+    "github.com/radovskyb/watcher",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
