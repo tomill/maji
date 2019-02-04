@@ -21,11 +21,9 @@ Examples:
 ```bash
 $ maji -- make test
 
-$ maji . -- go test
-
 $ maji src -x build -- make build
 
-$ maji front -- webpack
+$ maji -- "curl localhost:8080 | jq ."
 ```
 
 ## Install
@@ -37,7 +35,6 @@ go get -u github.com/tomill/maji
 ## Description
 
 This command was written as a go version of tokuhirom's perl5 [App-watcher](https://metacpan.org/pod/distribution/App-watcher/script/watcher). Unlike [gomon](https://github.com/c9s/gomon), this uses simple polling (by [radovskyb/watcher](https://github.com/radovskyb/watcher)) instead of inotify. That is it works with NFS file system.
-
 
 ## FAQ
 

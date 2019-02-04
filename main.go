@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,62 +12,90 @@ import (
 	"github.com/radovskyb/watcher"
 )
 
-func logInfo(s string, v ...interface{}) {
-	color.New(color.FgBlue).Println("[maji] " + fmt.Sprintf(s, v...))
-}
+const Name = "maji"
 
-func logFatal(err error) {
-	color.New(color.FgRed).Fprintln(os.Stderr, "[maji] error: "+err.Error())
-	os.Exit(1)
+type option struct {
+	Dirs    []string `long:"dir"               description:"Directory/File to watch. (default: .)"`
+	Exclude []string `long:"exclude" short:"x" description:"Directory/File to ignore."`
+	Command []string
 }
 
 func main() {
-	opt, err := GetOptions(os.Args)
-	if err, ok := err.(*flags.Error); ok && err.Type == flags.ErrHelp {
-		logInfo("%s", err)
-		os.Exit(0)
+	opt := &option{}
+	app := flags.NewParser(opt, flags.HelpFlag)
+	app.Name = Name
+	app.Usage = `[OPTIONS] [<dir>...] -- <command>`
+
+	args := os.Args[1:]
+	for i, v := range os.Args {
+		if v == "--" {
+			args = os.Args[1:i]
+			opt.Command = os.Args[i+1:]
+			break
+		}
 	}
+
+	bare, err := app.ParseArgs(args)
 	if err != nil {
-		logFatal(err)
+		log.Fatalln(err)
+	}
+
+	opt.Dirs = append(opt.Dirs, bare...)
+	if len(opt.Dirs) == 0 {
+		opt.Dirs = []string{"."}
 	}
 
 	if err := run(opt); err != nil {
-		logFatal(err)
+		log.Fatalln(err)
 	}
 }
 
-func run(opt *options) error {
-	w, err := NewWatcher(opt.Dirs, opt.Exclude)
-	if err != nil {
-		return err
+func run(opt *option) error {
+	w := watcher.New()
+	w.SetMaxEvents(1)
+	w.IgnoreHiddenFiles(true)
+
+	for _, v := range opt.Dirs {
+		if err := w.AddRecursive(v); err != nil {
+			infof("ignored %s", err)
+		}
+	}
+	if err := w.Ignore(opt.Exclude...); err != nil {
+		infof("ignored %s", err)
 	}
 
-	logInfo("watching %s", opt.Dirs)
+	p := NewProcess(opt.Command)
+
+	infof("start %s", p)
+	if err := p.Start(); err != nil {
+		infof("error %s", err)
+	}
 
 	trap := make(chan os.Signal, 1)
 	signal.Notify(trap, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
 
-	p := NewProcess(opt.Command)
-
 	go func() {
 		defer w.Close()
 		defer p.Stop()
+		defer infof("bye~~")
 		for {
 			select {
 			case sig := <-trap:
-				logInfo("%s. quit: %s", sig, p)
+				infof("%s. quit: %s", sig, p)
 				return
 			case event := <-w.Event:
-				logInfo("%s", event)
-				logInfo("restart %s", p)
+				infof("event %s", event)
+				infof("restart %s", p)
 				p.Stop()
 				if err := p.Start(); err != nil {
-					logInfo("%s", err)
+					infof("error %s", err)
 				}
 			case err := <-w.Error:
 				if err == watcher.ErrWatchedFileDeleted {
-					logInfo("%s", err)
-					continue
+					infof("event %s", err)
+					if len(w.WatchedFiles()) > 0 {
+						continue
+					}
 				}
 				return
 			case <-w.Closed:
@@ -76,10 +104,9 @@ func run(opt *options) error {
 		}
 	}()
 
-	logInfo("start %s", p)
-	if err = p.Start(); err != nil {
-		logInfo("%s", err)
-	}
-
 	return w.Start(time.Millisecond * 100)
+}
+
+func infof(s string, v ...interface{}) {
+	_, _ = color.New(color.FgBlue).Printf("["+Name+"] "+s+"\n", v...)
 }
