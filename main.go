@@ -55,17 +55,22 @@ func run(opt *option) error {
 	w.SetMaxEvents(1)
 	w.IgnoreHiddenFiles(true)
 
-	for _, v := range opt.Dirs {
-		if err := w.AddRecursive(v); err != nil {
+	listing := func() {
+		for _, v := range opt.Dirs {
+			if err := w.AddRecursive(v); err != nil {
+				infof("ignored %s", err)
+			}
+		}
+		if err := w.Ignore(opt.Exclude...); err != nil {
 			infof("ignored %s", err)
 		}
-	}
-	if err := w.Ignore(opt.Exclude...); err != nil {
-		infof("ignored %s", err)
+
+		if len(w.WatchedFiles()) == 0 {
+			log.Fatalln("error no files to watch")
+		}
 	}
 
 	p := NewProcess(opt.Command)
-
 	infof("start %s", p)
 	if err := p.Start(); err != nil {
 		infof("error %s", err)
@@ -91,11 +96,11 @@ func run(opt *option) error {
 					infof("error %s", err)
 				}
 			case err := <-w.Error:
+				infof("event %s", err)
 				if err == watcher.ErrWatchedFileDeleted {
-					infof("event %s", err)
-					if len(w.WatchedFiles()) > 0 {
-						continue
-					}
+					time.Sleep(time.Millisecond * 500)
+					listing()
+					continue
 				}
 				return
 			case <-w.Closed:
@@ -104,6 +109,7 @@ func run(opt *option) error {
 		}
 	}()
 
+	listing()
 	return w.Start(time.Millisecond * 100)
 }
 
