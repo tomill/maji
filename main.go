@@ -18,6 +18,7 @@ type option struct {
 	Dirs    []string `long:"dir"               description:"Directory/File to watch. (default: .)"`
 	Exclude []string `long:"exclude" short:"x" description:"Directory/File to ignore."`
 	Command []string
+	Debug   bool     `long:"debug"`
 }
 
 func main() {
@@ -68,6 +69,10 @@ func run(opt *option) error {
 		if len(w.WatchedFiles()) == 0 {
 			log.Fatalln("error no files to watch")
 		}
+
+		if opt.Debug {
+			infof("watching files: %+v", w.WatchedFiles())
+		}
 	}
 
 	p := NewProcess(opt.Command)
@@ -98,7 +103,7 @@ func run(opt *option) error {
 			case err := <-w.Error:
 				infof("event %s", err)
 				if err == watcher.ErrWatchedFileDeleted {
-					time.Sleep(time.Millisecond * 500)
+					time.Sleep(time.Millisecond * 1000)
 					listing()
 					continue
 				}
